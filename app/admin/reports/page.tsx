@@ -19,9 +19,11 @@ const SORT_FIELD_OPTIONS: { value: SortField; label: string }[] = [
 
 const STATUS_OPTIONS: { value: OrderStatus | ''; label: string }[] = [
   { value: '', label: 'Todos' },
+  { value: 'awaiting_payment', label: STATUS_UI.awaiting_payment.label },
   { value: 'pending', label: STATUS_UI.pending.label },
   { value: 'fulfilled', label: STATUS_UI.fulfilled.label },
   { value: 'returned', label: STATUS_UI.returned.label },
+  { value: 'cancelled', label: STATUS_UI.cancelled.label },
 ];
 
 const inputClass =
