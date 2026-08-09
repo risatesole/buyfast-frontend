@@ -1,19 +1,11 @@
 'use client';
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 
 // ============================================================================
 // CAPA DE DOMINIO Y TIPOS
 // ============================================================================
-
-type CreditCard = {
-  card_number: string;
-  cardholder_name: string;
-  cvv: string;
-  expiry_month: string;
-  expiry_year: string;
-};
 
 type BillingAddress = {
   street: string;
@@ -29,7 +21,6 @@ type CheckoutData = {
   lastname: string;
   email: string;
   phone: string;
-  credit_card: CreditCard;
   billing_address: BillingAddress;
   pickuptime: string;
   items: Array<{
@@ -74,6 +65,11 @@ type CheckoutPageData = {
     user: User;
     pickup_times: PickupTimeSlot[];
   };
+};
+
+type CheckoutResult = {
+  orderId: number;
+  amount: number;
 };
 
 // ============================================================================
@@ -133,7 +129,7 @@ class CheckoutService {
     };
   }
 
-  async executeCheckout(formData: CheckoutData): Promise<void> {
+  async executeCheckout(formData: CheckoutData): Promise<CheckoutResult> {
     const transformedData = {
       billing_contact: {
         firstname: formData.firstname,
@@ -149,14 +145,6 @@ class CheckoutService {
         postal_code: formData.billing_address.postal_code,
         state: formData.billing_address.state,
       },
-      card_information: {
-        card_number: formData.credit_card.card_number.replace(/\s/g, ''),
-        expiry_month: parseInt(formData.credit_card.expiry_month, 10),
-        // El backend espera el año en 2 dígitos (2029 -> 29), aunque el selector
-        // muestra el año completo para que no tengas que adivinar el formato.
-        expiry_year: parseInt(formData.credit_card.expiry_year, 10) % 100,
-        cvv: parseInt(formData.credit_card.cvv, 10),
-      },
       pickuptime: formData.pickuptime,
       items: formData.items.map(item => ({
         productvariantid: parseInt(item.product_variant_id, 10),
@@ -171,11 +159,158 @@ class CheckoutService {
       body: JSON.stringify(transformedData),
     });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Checkout failed: ${response.status} - ${errorText}`);
+    const data = await response.json().catch(() => null);
+
+    if (!response.ok || !data?.order_id) {
+      const message = data?.error?.message || data?.message || `Checkout failed: ${response.status}`;
+      throw new Error(message);
     }
+
+    return { orderId: data.order_id, amount: data.amount };
   }
+}
+
+// ============================================================================
+// PAYPAL — carga del SDK y botón de pago (sandbox)
+// ============================================================================
+
+declare global {
+  interface Window {
+    paypal?: {
+      Buttons: (config: {
+        createOrder: () => Promise<string>;
+        onApprove: (data: { orderID: string }) => Promise<void> | void;
+        onCancel?: () => void;
+        onError?: (err: unknown) => void;
+      }) => { render: (container: HTMLElement) => void };
+    };
+  }
+}
+
+const PAYPAL_CLIENT_ID = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID;
+const PAYPAL_SDK_SCRIPT_ID = 'paypal-sdk';
+
+function loadPayPalSdk(): Promise<void> {
+  if (window.paypal) return Promise.resolve();
+
+  const existingScript = document.getElementById(PAYPAL_SDK_SCRIPT_ID) as HTMLScriptElement | null;
+  if (existingScript) {
+    return new Promise((resolve, reject) => {
+      existingScript.addEventListener('load', () => resolve());
+      existingScript.addEventListener('error', () => reject(new Error('No se pudo cargar PayPal')));
+    });
+  }
+
+  return new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.id = PAYPAL_SDK_SCRIPT_ID;
+    script.src = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_ID}&currency=USD`;
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error('No se pudo cargar PayPal'));
+    document.body.appendChild(script);
+  });
+}
+
+interface PayPalCheckoutButtonProps {
+  orderId: number;
+  onSuccess: () => void;
+  onCancelled: (message?: string) => void;
+}
+
+function PayPalCheckoutButton({ orderId, onSuccess, onCancelled }: PayPalCheckoutButtonProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!PAYPAL_CLIENT_ID) return;
+
+    let cancelled = false;
+
+    const notifyCancelled = (order_id: number, message: string) => {
+      fetch('/api/v1/checkout/paypal/cancel', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ order_id }),
+      }).catch(() => {});
+      onCancelled(message);
+    };
+
+    loadPayPalSdk()
+      .then(() => {
+        if (cancelled || !containerRef.current || !window.paypal) return;
+        containerRef.current.innerHTML = '';
+        window.paypal
+          .Buttons({
+            createOrder: async () => {
+              const res = await fetch('/api/v1/checkout/paypal/create-order', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ order_id: orderId }),
+              });
+              const data = await res.json().catch(() => null);
+              if (!res.ok || !data?.paypal_order_id) {
+                throw new Error(data?.error?.message || 'No se pudo iniciar el pago con PayPal');
+              }
+              return data.paypal_order_id;
+            },
+            onApprove: async data => {
+              const res = await fetch('/api/v1/checkout/paypal/capture', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ order_id: orderId, paypal_order_id: data.orderID }),
+              });
+              if (!res.ok) {
+                const body = await res.json().catch(() => null);
+                onCancelled(body?.error?.message || body?.message || 'El pago no se pudo completar.');
+                return;
+              }
+              onSuccess();
+            },
+            onCancel: () => {
+              notifyCancelled(
+                orderId,
+                'Pago cancelado. Tus productos siguen disponibles, puedes intentar de nuevo.'
+              );
+            },
+            onError: () => {
+              notifyCancelled(orderId, 'Ocurrió un error con PayPal. Intenta de nuevo.');
+            },
+          })
+          .render(containerRef.current);
+      })
+      .catch(() => {
+        if (!cancelled)
+          setLoadError('No se pudo cargar PayPal. Verifica tu conexión e intenta de nuevo.');
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [orderId, onSuccess, onCancelled]);
+
+  if (!PAYPAL_CLIENT_ID) {
+    return (
+      <p className="text-sm text-red-600">
+        PayPal no está configurado (falta NEXT_PUBLIC_PAYPAL_CLIENT_ID).
+      </p>
+    );
+  }
+
+  if (loadError) {
+    return <p className="text-sm text-red-600">{loadError}</p>;
+  }
+
+  return (
+    <div>
+      <div ref={containerRef} />
+      <p className="mt-3 text-xs text-gray-400">
+        Cargo de prueba en USD — entorno sandbox de PayPal (solo para fines de demostración).
+      </p>
+    </div>
+  );
 }
 
 // ============================================================================
@@ -184,11 +319,6 @@ class CheckoutService {
 
 type FormErrors = Record<string, string>;
 
-// Rango de años para el selector de expiración (año actual + 15 años)
-const CURRENT_YEAR = new Date().getFullYear();
-const EXPIRY_YEARS = Array.from({ length: 16 }, (_, i) => CURRENT_YEAR + i);
-const EXPIRY_MONTHS = Array.from({ length: 12 }, (_, i) => i + 1);
-
 function useCheckoutLogic() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -196,19 +326,13 @@ function useCheckoutLogic() {
   const [success, setSuccess] = useState(false);
   const [checkoutData, setCheckoutData] = useState<CheckoutPageData | null>(null);
   const [formErrors, setFormErrors] = useState<FormErrors>({});
+  const [orderId, setOrderId] = useState<number | null>(null);
 
   const [formData, setFormData] = useState<CheckoutData>({
     firstname: '',
     lastname: '',
     email: '',
     phone: '',
-    credit_card: {
-      card_number: '',
-      cardholder_name: '',
-      cvv: '',
-      expiry_month: '',
-      expiry_year: '',
-    },
     billing_address: { street: '', city: '', state: '', postal_code: '', country: '' },
     pickuptime: '',
     items: [],
@@ -262,10 +386,6 @@ function useCheckoutLogic() {
     const validateEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
     const validatePhone = (phone: string) =>
       /^[+]?[(]?[0-9]{3}[)]?[-\s.]?[0-9]{3}[-\s.]?[0-9]{4,6}$/.test(phone.replace(/\s/g, ''));
-    const validateCard = (card: string) => {
-      const cleaned = card.replace(/\s/g, '');
-      return cleaned.length >= 13 && cleaned.length <= 19 && /^\d+$/.test(cleaned);
-    };
 
     if (!formData.firstname.trim()) errors.firstname = 'El nombre es requerido';
     if (!formData.lastname.trim()) errors.lastname = 'El apellido es requerido';
@@ -282,18 +402,6 @@ function useCheckoutLogic() {
     if (!address.country.trim()) errors.billing_country = 'El país es requerido';
     if (!formData.pickuptime) errors.pickuptime = 'Por favor selecciona un horario';
 
-    if (!formData.credit_card.cardholder_name.trim())
-      errors.cardholder_name = 'El nombre del titular es requerido';
-    if (!formData.credit_card.card_number.trim())
-      errors.card_number = 'El número de tarjeta es requerido';
-    else if (!validateCard(formData.credit_card.card_number))
-      errors.card_number = 'Número de tarjeta inválido';
-    if (!formData.credit_card.expiry_month) errors.expiry_month = 'Selecciona el mes';
-    if (!formData.credit_card.expiry_year) errors.expiry_year = 'Selecciona el año';
-    if (!formData.credit_card.cvv.trim()) errors.cvv = 'El CVV es requerido';
-    else if (!/^\d{3,4}$/.test(formData.credit_card.cvv))
-      errors.cvv = 'El CVV debe tener 3-4 dígitos';
-
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   }, [formData]);
@@ -304,11 +412,6 @@ function useCheckoutLogic() {
       setError(null);
 
       setFormData(prev => {
-        if (name.startsWith('card_'))
-          return {
-            ...prev,
-            credit_card: { ...prev.credit_card, [name.replace('card_', '')]: value },
-          };
         if (name.startsWith('billing_'))
           return {
             ...prev,
@@ -336,16 +439,43 @@ function useCheckoutLogic() {
       return;
     }
     setSubmitting(true);
+    setError(null);
     try {
       const service = new CheckoutService();
-      await service.executeCheckout(formData);
-      setSuccess(true);
+      const result = await service.executeCheckout(formData);
+      setOrderId(result.orderId);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Checkout failed');
     } finally {
       setSubmitting(false);
     }
   };
+
+  const handlePaymentSuccess = useCallback(() => {
+    setSuccess(true);
+  }, []);
+
+  const handlePaymentCancelled = useCallback((message?: string) => {
+    setOrderId(null);
+    setError(message || null);
+  }, []);
+
+  const handleEditOrder = useCallback(async () => {
+    if (orderId) {
+      try {
+        await fetch('/api/v1/checkout/paypal/cancel', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ order_id: orderId }),
+        });
+      } catch {
+        // best-effort — the order stays reserved server-side either way and
+        // the user can just retry from the form again
+      }
+    }
+    setOrderId(null);
+  }, [orderId]);
 
   return {
     loading,
@@ -356,8 +486,12 @@ function useCheckoutLogic() {
     formErrors,
     formData,
     totalAmount,
+    orderId,
     handleInputChange,
     handleSubmit,
+    handlePaymentSuccess,
+    handlePaymentCancelled,
+    handleEditOrder,
   };
 }
 
@@ -445,8 +579,12 @@ export default function CheckoutPage() {
     formErrors,
     formData,
     totalAmount,
+    orderId,
     handleInputChange,
     handleSubmit,
+    handlePaymentSuccess,
+    handlePaymentCancelled,
+    handleEditOrder,
   } = useCheckoutLogic();
 
   const [resendStatus, setResendStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
@@ -502,12 +640,22 @@ export default function CheckoutPage() {
             Gracias por tu compra. Hemos procesado tu orden exitosamente y recibirás un correo de
             confirmación en breve.
           </p>
-          <button
-            onClick={() => (window.location.href = '/')}
-            className="w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 transition-all focus:ring-2 focus:ring-offset-2 focus:ring-blue-600"
-          >
-            Volver a la tienda
-          </button>
+          <div className="space-y-3">
+            {orderId && (
+              <Link
+                href={`/account/orders/${orderId}`}
+                className="block w-full rounded-xl border border-blue-600 px-4 py-3 text-sm font-semibold text-blue-600 hover:bg-blue-50 transition-all text-center"
+              >
+                Ver mi pedido #{orderId}
+              </Link>
+            )}
+            <button
+              onClick={() => (window.location.href = '/')}
+              className="w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 transition-all focus:ring-2 focus:ring-offset-2 focus:ring-blue-600"
+            >
+              Volver a la tienda
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -723,130 +871,66 @@ export default function CheckoutPage() {
             {/* 3. Pago */}
             <SectionCard
               step="3"
-              title="Método de Pago"
-              subtitle="Tus datos de pago están encriptados de forma segura."
+              title="Pago con PayPal"
+              subtitle="Paga de forma segura con tu cuenta de PayPal (entorno de pruebas / sandbox)."
             >
-              <div className="grid grid-cols-1 gap-x-6 gap-y-6 sm:grid-cols-2">
-                <div className="sm:col-span-2">
-                  <InputField
-                    label="Nombre en la tarjeta"
-                    name="card_cardholder_name"
-                    value={formData.credit_card.cardholder_name}
-                    formErrors={formErrors}
-                    onChange={handleInputChange}
+              {orderId ? (
+                <div>
+                  <PayPalCheckoutButton
+                    orderId={orderId}
+                    onSuccess={handlePaymentSuccess}
+                    onCancelled={handlePaymentCancelled}
                   />
+                  <button
+                    type="button"
+                    onClick={handleEditOrder}
+                    className="mt-4 text-sm text-gray-500 underline underline-offset-2 hover:text-gray-700"
+                  >
+                    Editar pedido
+                  </button>
                 </div>
-                <div className="sm:col-span-2">
-                  <InputField
-                    label="Número de la tarjeta"
-                    name="card_card_number"
-                    value={formData.credit_card.card_number}
-                    maxLength={19}
-                    formErrors={formErrors}
-                    onChange={handleInputChange}
-                  />
-                </div>
-
-                {/* Expiración: mes y año como selects separados, sin adivinar el formato */}
-                <div className="sm:col-span-2">
-                  <label className="block text-sm font-medium leading-6 text-gray-900">
-                    Fecha de expiración
-                  </label>
-                  <div className="mt-2 grid grid-cols-2 gap-3">
-                    <div>
-                      <select
-                        name="card_expiry_month"
-                        value={formData.credit_card.expiry_month}
-                        onChange={handleInputChange}
-                        data-error={Boolean(formErrors.expiry_month)}
-                        className={`block w-full rounded-xl border-0 py-2.5 px-3.5 text-gray-900 shadow-sm ring-1 ring-inset ${
-                          formErrors.expiry_month
-                            ? 'ring-red-300 focus:ring-red-500'
-                            : 'ring-gray-300 focus:ring-blue-600'
-                        } focus:ring-2 sm:text-sm`}
-                      >
-                        <option value="">Mes</option>
-                        {EXPIRY_MONTHS.map(m => (
-                          <option key={m} value={String(m).padStart(2, '0')}>
-                            {String(m).padStart(2, '0')}
-                          </option>
-                        ))}
-                      </select>
-                      {formErrors.expiry_month && (
-                        <p className="mt-1 text-xs text-red-600">{formErrors.expiry_month}</p>
-                      )}
-                    </div>
-                    <div>
-                      <select
-                        name="card_expiry_year"
-                        value={formData.credit_card.expiry_year}
-                        onChange={handleInputChange}
-                        data-error={Boolean(formErrors.expiry_year)}
-                        className={`block w-full rounded-xl border-0 py-2.5 px-3.5 text-gray-900 shadow-sm ring-1 ring-inset ${
-                          formErrors.expiry_year
-                            ? 'ring-red-300 focus:ring-red-500'
-                            : 'ring-gray-300 focus:ring-blue-600'
-                        } focus:ring-2 sm:text-sm`}
-                      >
-                        <option value="">Año</option>
-                        {EXPIRY_YEARS.map(y => (
-                          <option key={y} value={y}>
-                            {y}
-                          </option>
-                        ))}
-                      </select>
-                      {formErrors.expiry_year && (
-                        <p className="mt-1 text-xs text-red-600">{formErrors.expiry_year}</p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="sm:col-span-2 sm:max-w-[10rem]">
-                  <InputField
-                    label="CVC"
-                    name="card_cvv"
-                    value={formData.credit_card.cvv}
-                    maxLength={4}
-                    formErrors={formErrors}
-                    onChange={handleInputChange}
-                  />
-                </div>
-              </div>
+              ) : (
+                <p className="text-sm text-gray-500">
+                  Completa la información de contacto y retiro, luego continúa para pagar con
+                  PayPal.
+                </p>
+              )}
             </SectionCard>
 
-            {/* Confirmar */}
-            <div className="flex justify-end">
-              <button
-                type="button"
-                onClick={handleSubmit}
-                disabled={submitting || !isEmailVerified}
-                className="rounded-xl bg-blue-600 px-8 py-3 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 disabled:opacity-60 disabled:cursor-not-allowed transition-all flex items-center focus:ring-2 focus:ring-offset-2 focus:ring-blue-600"
-              >
-                {submitting && (
-                  <svg
-                    className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    ></circle>
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                    ></path>
-                  </svg>
-                )}
-                {submitting ? 'Procesando...' : 'Confirmar Orden'}
-              </button>
-            </div>
+            {/* Continuar al pago */}
+            {!orderId && (
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={handleSubmit}
+                  disabled={submitting || !isEmailVerified}
+                  className="rounded-xl bg-blue-600 px-8 py-3 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 disabled:opacity-60 disabled:cursor-not-allowed transition-all flex items-center focus:ring-2 focus:ring-offset-2 focus:ring-blue-600"
+                >
+                  {submitting && (
+                    <svg
+                      className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      ></path>
+                    </svg>
+                  )}
+                  {submitting ? 'Procesando...' : 'Continuar al pago'}
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Sidebar Resumen */}
