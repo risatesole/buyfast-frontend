@@ -7,6 +7,7 @@ import '../globals.css';
 import { cookies } from 'next/headers';
 
 import { NavbarWithCart } from '@/components/navbar-with-cart';
+import { getPriceWithTax } from '@/lib/tax';
 import { Footer } from '@/components/Footer';
 import type { NavbarCartItem } from '@/components/navbar';
 import { CookieConsentBanner } from '@/components/CookieConsentBanner';
@@ -53,6 +54,7 @@ interface CartItemRaw {
   variant_name: string; // Nombre de la variante
   product_slug?: string;
   selling_price: number | string;
+  tax_rate?: number | string;
   quantity: number;
   thumbnail?: string | null;
   total_price?: number | string;
@@ -118,7 +120,7 @@ async function getCartItems(): Promise<NavbarCartItem[]> {
     // Mostrar producto + variante si existe variant_name
     name: `${item.product_name} - ${item.variant_name}`,
 
-    price: Number(item.selling_price),
+    price: getPriceWithTax(Number(item.selling_price), Number(item.tax_rate ?? 0)),
     quantity: item.quantity,
     image: item.thumbnail || undefined,
   }));

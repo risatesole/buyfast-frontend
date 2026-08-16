@@ -9,6 +9,7 @@ export default function ProductList({
     thumbnail: string;
     slug: string;
     selling_price: number;
+    tax_rate?: number;
     categoryName: string;
   }[];
 }) {
@@ -23,6 +24,7 @@ export default function ProductList({
           slug={product.slug}
           name={product.name}
           selling_price={product.selling_price}
+          tax_rate={product.tax_rate}
           categoryName={product.categoryName}
           image={product.thumbnail}
           actionLabel="VER PRODUCTO"

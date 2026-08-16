@@ -36,6 +36,7 @@ type SearchProduct = {
   variantId: number | null;
   name: string;
   selling_price: number;
+  tax_rate: number;
   categoryName: string;
   image: string;
   slug: string;
@@ -49,6 +50,7 @@ function normalizeProduct(product: ApiProduct): SearchProduct {
     variantId: firstVariant?.id ?? firstVariant?.variantnumber ?? null,
     name: product.name,
     selling_price: firstVariant?.selling_price ?? 0,
+    tax_rate: firstVariant?.tax_rate ?? 0,
     categoryName: product.category,
     image: firstVariant?.thumbnail || firstVariant?.image_thumbnail || product.thumbnail || '',
     slug: firstVariant?.slug || product.slug || '',
@@ -114,6 +116,7 @@ export function SearchContent({ query, products }: SearchContentProps) {
                   id={product.variantId}
                   name={product.name}
                   selling_price={product.selling_price}
+                  tax_rate={product.tax_rate}
                   categoryName={product.categoryName}
                   image={product.image}
                   slug={product.slug}

@@ -14,6 +14,7 @@ interface MappedProduct {
   slug: string;
   category: string;
   selling_price: number;
+  tax_rate?: number;
   thumbnail?: string;
 }
 
@@ -53,6 +54,7 @@ function mapProductsToView(products: Product[]): MappedProduct[] {
       slug: primaryVariant?.slug,
       category: product.category,
       selling_price: primaryVariant?.selling_price ?? 0,
+      tax_rate: primaryVariant?.tax_rate ?? 0,
       thumbnail: primaryVariant?.thumbnail,
     };
   });

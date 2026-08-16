@@ -157,6 +157,7 @@ export default async function Page() {
         name: string;
         slug: string;
         selling_price: number;
+        tax_rate?: number;
         thumbnail?: string;
         image_thumbnail?: string;
       }[];
@@ -180,6 +181,7 @@ export default async function Page() {
             ? product.category
             : product.category?.name || 'Sin categoría',
         selling_price: firstVariant?.selling_price ?? 0,
+        tax_rate: firstVariant?.tax_rate ?? 0,
         image: variantImage,
         thumbnail: variantImage,
       };

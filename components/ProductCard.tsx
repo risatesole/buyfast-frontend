@@ -3,11 +3,13 @@
 import { memo, useCallback, MouseEvent } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { getPriceWithTax } from '@/lib/tax';
 
 export interface ProductCardProps {
   id: string | number;
   name: string;
   selling_price: number;
+  tax_rate?: number;
   categoryName: string;
   image?: string | null;
   slug: string;
@@ -26,6 +28,7 @@ export const ProductCard = memo(function ProductCard({
   id,
   name,
   selling_price,
+  tax_rate = 0,
   categoryName,
   image,
   slug,
@@ -81,7 +84,7 @@ export const ProductCard = memo(function ProductCard({
 
           <div className="mt-auto pt-1">
             <span className="font-serif text-base font-bold text-[#191c1e]">
-              {DOP_FORMATTER.format(selling_price)}
+              {DOP_FORMATTER.format(getPriceWithTax(selling_price, tax_rate))}
             </span>
           </div>
         </div>

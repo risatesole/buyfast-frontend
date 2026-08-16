@@ -12,6 +12,7 @@ interface MappedProduct {
   slug: string;
   category: string;
   sellingPrice: number;
+  taxRate: number;
   thumbnail?: string;
 }
 
@@ -162,6 +163,7 @@ function mapProductsToView(products: Product[]): MappedProduct[] {
       slug: primaryVariant?.slug || product.slug || '',
       category: product.category,
       sellingPrice: primaryVariant?.selling_price ?? 0,
+      taxRate: primaryVariant?.tax_rate ?? 0,
       thumbnail: primaryVariant?.thumbnail || product.thumbnail || '',
     };
   });
@@ -367,6 +369,7 @@ export default async function CatalogPage({
                       id={product.id}
                       name={product.name}
                       selling_price={product.sellingPrice}
+                      tax_rate={product.taxRate}
                       categoryName={product.category}
                       image={product.thumbnail}
                       slug={product.slug}

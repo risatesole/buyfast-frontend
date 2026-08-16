@@ -2,6 +2,7 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { getPriceWithTax, getTaxAmount } from '@/lib/tax';
 
 // ============================================================================
 // CAPA DE DOMINIO Y TIPOS
@@ -36,6 +37,7 @@ type CartItem = {
     name: string;
     description: string;
     selling_price: number;
+    tax_rate: number;
   };
   quantity: number;
 };
@@ -162,7 +164,8 @@ class CheckoutService {
     const data = await response.json().catch(() => null);
 
     if (!response.ok || !data?.order_id) {
-      const message = data?.error?.message || data?.message || `Checkout failed: ${response.status}`;
+      const message =
+        data?.error?.message || data?.message || `Checkout failed: ${response.status}`;
       throw new Error(message);
     }
 
@@ -264,7 +267,9 @@ function PayPalCheckoutButton({ orderId, onSuccess, onCancelled }: PayPalCheckou
               });
               if (!res.ok) {
                 const body = await res.json().catch(() => null);
-                onCancelled(body?.error?.message || body?.message || 'El pago no se pudo completar.');
+                onCancelled(
+                  body?.error?.message || body?.message || 'El pago no se pudo completar.'
+                );
                 return;
               }
               onSuccess();
@@ -372,7 +377,7 @@ function useCheckoutLogic() {
     };
   }, []);
 
-  const totalAmount = useMemo(() => {
+  const subtotalAmount = useMemo(() => {
     return (
       checkoutData?.data.cart.items.reduce(
         (sum, item) => sum + item.productvariant.selling_price * item.quantity,
@@ -380,6 +385,20 @@ function useCheckoutLogic() {
       ) || 0
     );
   }, [checkoutData?.data.cart.items]);
+
+  const taxAmount = useMemo(() => {
+    return (
+      checkoutData?.data.cart.items.reduce(
+        (sum, item) =>
+          sum +
+          getTaxAmount(item.productvariant.selling_price, item.productvariant.tax_rate) *
+            item.quantity,
+        0
+      ) || 0
+    );
+  }, [checkoutData?.data.cart.items]);
+
+  const totalAmount = subtotalAmount + taxAmount;
 
   const validateAll = useCallback(() => {
     const errors: FormErrors = {};
@@ -485,6 +504,8 @@ function useCheckoutLogic() {
     checkoutData,
     formErrors,
     formData,
+    subtotalAmount,
+    taxAmount,
     totalAmount,
     orderId,
     handleInputChange,
@@ -578,6 +599,8 @@ export default function CheckoutPage() {
     checkoutData,
     formErrors,
     formData,
+    subtotalAmount,
+    taxAmount,
     totalAmount,
     orderId,
     handleInputChange,
@@ -949,7 +972,13 @@ export default function CheckoutPage() {
                           <div className="flex justify-between text-sm font-medium text-gray-900">
                             <h4 className="line-clamp-2 pr-4">{item.productvariant.name}</h4>
                             <p className="ml-4 whitespace-nowrap">
-                              ${(item.productvariant.selling_price * item.quantity).toFixed(2)}
+                              $
+                              {(
+                                getPriceWithTax(
+                                  item.productvariant.selling_price,
+                                  item.productvariant.tax_rate
+                                ) * item.quantity
+                              ).toFixed(2)}
                             </p>
                           </div>
                           <p className="mt-1 text-sm text-gray-500">Cant. {item.quantity}</p>
@@ -961,8 +990,12 @@ export default function CheckoutPage() {
 
                 <div className="border-t border-gray-100 pt-6 space-y-4">
                   <div className="flex items-center justify-between text-sm">
-                    <dt className="text-gray-600">Subtotal</dt>
-                    <dd className="font-medium text-gray-900">${totalAmount.toFixed(2)}</dd>
+                    <dt className="text-gray-600">Precio del producto</dt>
+                    <dd className="font-medium text-gray-900">${subtotalAmount.toFixed(2)}</dd>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <dt className="text-gray-600">Impuesto</dt>
+                    <dd className="font-medium text-gray-900">${taxAmount.toFixed(2)}</dd>
                   </div>
                   <div className="flex items-center justify-between text-sm">
                     <dt className="text-gray-600">Envío</dt>

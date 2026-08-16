@@ -3,6 +3,7 @@
 import { useState, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { ImageGallery } from '@/components/ImageGallery';
+import { getPriceWithTax, getTaxAmount } from '@/lib/tax';
 
 export default function ProductPage({
   initialProduct,
@@ -39,6 +40,15 @@ export default function ProductPage({
 }) {
   const router = useRouter();
   const [isPending, setIsPending] = useState(false);
+
+  const priceWithTax = useMemo(
+    () => getPriceWithTax(initialVariant.selling_price, initialVariant.tax_rate),
+    [initialVariant.selling_price, initialVariant.tax_rate]
+  );
+  const taxAmount = useMemo(
+    () => getTaxAmount(initialVariant.selling_price, initialVariant.tax_rate),
+    [initialVariant.selling_price, initialVariant.tax_rate]
+  );
 
   const imageUrls = useMemo(() => {
     const sourceImages = initialVariant.images?.length
@@ -90,11 +100,10 @@ export default function ProductPage({
           <p className="mb-6 text-sm text-gray-500">{initialVariant.name}</p>
 
           <div className="mb-8 flex flex-col gap-1">
-            <p className="text-2xl font-bold text-gray-900">
-              ${initialVariant.selling_price.toFixed(2)}
-            </p>
+            <p className="text-2xl font-bold text-gray-900">${priceWithTax.toFixed(2)}</p>
             <p className="text-xs text-gray-500">
-              Tasa de impuesto: {(initialVariant.tax_rate * 100).toFixed(0)}%
+              Incluye impuesto ({(initialVariant.tax_rate * 100).toFixed(0)}%): $
+              {taxAmount.toFixed(2)}
             </p>
           </div>
 

@@ -272,10 +272,8 @@ export function Navbar({
             <footer className="border-t border-[#eceef0] bg-[#f7f9fb] px-6 py-6 rounded-bl-3xl">
               <div className="mb-5 flex items-end justify-between">
                 <div>
-                  <p className="text-sm font-medium text-[#43474f]">Subtotal</p>
-                  <p className="mt-1 text-xs text-[#747781]">
-                    Impuestos y envío calculados al pagar
-                  </p>
+                  <p className="text-sm font-medium text-[#43474f]">Total</p>
+                  <p className="mt-1 text-xs text-[#747781]">Impuesto incluido</p>
                 </div>
                 <span className="text-xl font-bold text-[#002d62]">
                   {formatCurrency(totalPrice)}

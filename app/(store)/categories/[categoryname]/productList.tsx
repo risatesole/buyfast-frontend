@@ -9,6 +9,7 @@ export interface MappedProduct {
   thumbnail?: string;
   slug: string;
   selling_price: number;
+  tax_rate?: number;
   category: string;
 }
 
@@ -54,6 +55,7 @@ export default function ProductList({ products }: ProductListProps) {
             slug={product.slug}
             name={product.name}
             selling_price={product.selling_price}
+            tax_rate={product.tax_rate}
             categoryName={product.category}
             image={product.thumbnail}
             onAdd={handleAddToCart}
