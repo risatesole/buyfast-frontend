@@ -707,7 +707,7 @@ export default function CheckoutPage() {
                 BUYFAST
               </span>
               <span className="text-[10px] font-medium tracking-[0.2em] text-[#abc7ff] leading-none uppercase">
-                ECONÓMATO
+                ECONOMATO
               </span>
             </div>
           </Link>

@@ -174,7 +174,7 @@ const BrandLogo = memo(() => (
         BUYFAST
       </span>
       <span className="text-[9px] font-sans font-bold tracking-[0.2em] text-[#7d9ccb] leading-none uppercase mt-0.5 truncate">
-        Económato
+        Economato
       </span>
     </div>
   </Link>

@@ -51,7 +51,7 @@ const BrandLogo = () => (
         BUYFAST
       </span>
       <span className="mt-0.5 text-[9px] font-bold tracking-[0.2em] text-white leading-none uppercase">
-        ECONÓMATO
+        ECONOMATO
       </span>
     </div>
   </Link>
