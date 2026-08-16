@@ -253,6 +253,7 @@ export function AppSidebar({ user }: AppSidebarProps) {
           lg:translate-x-0
           ${isMobileOpen ? 'translate-x-0' : '-translate-x-full'}
         `}
+        style={{ fontFamily: 'var(--font-geist-sans), sans-serif' }}
         aria-label="Barra lateral principal"
       >
         {/* Header Institucional */}
@@ -264,7 +265,7 @@ export function AppSidebar({ user }: AppSidebarProps) {
         <nav className="flex flex-col gap-y-6 px-3 py-6 h-[calc(100%-5rem)] overflow-y-auto custom-scrollbar">
           {/* Sección: Plataforma */}
           <div>
-            <p className="px-3 mb-3 text-xs font-sans font-bold uppercase tracking-wider text-[#7d9ccb]">
+            <p className="px-3 mb-3 text-xs font-semibold uppercase tracking-wider text-[#7d9ccb]">
               Plataforma
             </p>
             <ul className="space-y-1.5">
@@ -275,10 +276,10 @@ export function AppSidebar({ user }: AppSidebarProps) {
                 const isActiveModule = isPathActive(item.url) || isSubPathActive(item.sub);
 
                 const baseClasses =
-                  'w-full flex items-center gap-x-3.5 px-3.5 py-3 rounded-xl text-sm font-sans font-medium transition-all duration-200 outline-none';
+                  'w-full flex items-center gap-x-3 px-3.5 py-2.5 rounded-lg border-l-2 border-transparent text-sm font-medium transition-colors duration-150 outline-none';
                 const activeClasses = isActiveModule
-                  ? 'bg-[#5891ff] text-[#001530] font-semibold shadow-sm'
-                  : 'text-white hover:bg-[#002554]/60';
+                  ? 'bg-[#5891ff]/12 border-[#5891ff] text-white'
+                  : 'text-[#c7d6f0] hover:bg-white/5 hover:text-white';
 
                 if (!hasSub) {
                   return (
@@ -289,7 +290,7 @@ export function AppSidebar({ user }: AppSidebarProps) {
                         onClick={handleCloseMobileMenu}
                       >
                         <Icon
-                          className={`size-5 shrink-0 ${isActiveModule ? 'text-[#001530]' : 'text-white'}`}
+                          className={`size-5 shrink-0 ${isActiveModule ? 'text-[#5891ff]' : 'text-[#7d9ccb]'}`}
                         />
                         <span className="truncate">{item.title}</span>
                       </Link>
@@ -305,19 +306,19 @@ export function AppSidebar({ user }: AppSidebarProps) {
                       aria-expanded={isOpen}
                     >
                       <Icon
-                        className={`size-5 shrink-0 ${isActiveModule ? 'text-[#001530]' : 'text-white'}`}
+                        className={`size-5 shrink-0 ${isActiveModule ? 'text-[#5891ff]' : 'text-[#7d9ccb]'}`}
                       />
                       <span className="flex-1 text-left truncate">{item.title}</span>
                       <ChevronDown
                         className={`size-4 shrink-0 transition-transform duration-200 ${isOpen ? '-rotate-180' : ''} ${
-                          isActiveModule ? 'text-[#001530]' : 'text-white'
+                          isActiveModule ? 'text-[#5891ff]' : 'text-[#7d9ccb]'
                         }`}
                       />
                     </button>
 
                     {/* Sub-menú colapsable */}
                     {isOpen && (
-                      <ul className="mt-1 space-y-1 pl-11 pr-2 animate-in fade-in duration-200">
+                      <ul className="mt-1 space-y-0.5 pl-11 pr-2 animate-in fade-in duration-200">
                         {item.sub!.map(sub => {
                           const isSubActiveItem = isPathActive(sub.url);
                           return (
@@ -326,11 +327,11 @@ export function AppSidebar({ user }: AppSidebarProps) {
                                 href={sub.url}
                                 onClick={handleCloseMobileMenu}
                                 className={`
-                                  block py-2 px-3 rounded-lg text-sm font-sans transition-colors truncate
+                                  block py-2 px-3 rounded-lg text-sm transition-colors truncate
                                   ${
                                     isSubActiveItem
-                                      ? 'text-white font-bold bg-[#00285a]'
-                                      : 'text-[#d0e1ff] hover:text-white hover:bg-[#002048]'
+                                      ? 'text-[#5891ff] font-semibold bg-white/5'
+                                      : 'text-white hover:bg-white/5'
                                   }
                                 `}
                               >
@@ -349,7 +350,7 @@ export function AppSidebar({ user }: AppSidebarProps) {
 
           {/* Sección: Soporte */}
           <div>
-            <p className="px-3 mb-3 text-xs font-sans font-bold uppercase tracking-wider text-[#7d9ccb]">
+            <p className="px-3 mb-3 text-xs font-semibold uppercase tracking-wider text-[#7d9ccb]">
               Soporte
             </p>
             <ul className="space-y-1.5">
@@ -361,11 +362,11 @@ export function AppSidebar({ user }: AppSidebarProps) {
                       href={item.url}
                       onClick={handleCloseMobileMenu}
                       className={`
-                        block px-3.5 py-3 rounded-xl text-sm font-sans font-medium transition-all duration-200 truncate
+                        block px-3.5 py-2.5 rounded-lg border-l-2 text-sm font-medium transition-colors duration-150 truncate
                         ${
                           isActive
-                            ? 'bg-[#5891ff] text-[#001530] font-semibold'
-                            : 'text-white hover:bg-[#002554]/60'
+                            ? 'border-[#5891ff] bg-[#5891ff]/12 text-white'
+                            : 'border-transparent text-[#c7d6f0] hover:bg-white/5 hover:text-white'
                         }
                       `}
                     >
@@ -380,14 +381,14 @@ export function AppSidebar({ user }: AppSidebarProps) {
           {/* Sección Footer / Perfil de Usuario */}
           <div className="mt-auto pt-4 border-t border-[#002554]">
             <div className="px-2 py-2 flex items-center gap-x-3">
-              <div className="size-10 rounded-xl bg-[#5891ff] text-[#001530] font-sans text-sm font-bold flex items-center justify-center shrink-0 shadow-sm">
+              <div className="size-10 rounded-lg bg-[#5891ff]/12 text-[#5891ff] text-sm font-semibold flex items-center justify-center shrink-0">
                 {getInitials(user.firstname, user.lastname)}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-sans font-bold text-white truncate leading-snug">
+                <p className="text-sm font-semibold text-white truncate leading-snug">
                   {user.firstname} {user.lastname}
                 </p>
-                <p className="text-xs font-sans text-[#7d9ccb] truncate">{user.email}</p>
+                <p className="text-xs text-[#7d9ccb] truncate">{user.email}</p>
               </div>
             </div>
           </div>
