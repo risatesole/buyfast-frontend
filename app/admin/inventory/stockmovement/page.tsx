@@ -12,6 +12,7 @@ import {
   ArrowUp,
   Plus, // Added Plus icon
   Minus,
+  AlertTriangle,
 } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
@@ -57,6 +58,7 @@ interface ProductVariant {
   status: boolean;
   selling_price: number;
   tax_rate: number;
+  minimum_stock: number;
   product: Product;
   images: ProductImage[];
   created_at: string;
@@ -124,6 +126,8 @@ interface StockMovementRowProps {
 const StockMovementRow = ({ movement, onViewInfo }: StockMovementRowProps) => {
   const movementUI =
     MOVEMENT_TYPE_UI[movement.movement_type] || MOVEMENT_TYPE_UI['initial_inventory'];
+  const minimumStock = movement.product_variant.minimum_stock;
+  const isBelowMinimum = minimumStock > 0 && movement.balance <= minimumStock;
   const formattedDate = new Date(movement.date_time).toLocaleString('es-ES', {
     day: '2-digit',
     month: '2-digit',
@@ -196,6 +200,12 @@ const StockMovementRow = ({ movement, onViewInfo }: StockMovementRowProps) => {
             {movement.quantity}
           </span>
           <span className="text-[11px] text-[#747781]">Balance: {movement.balance}</span>
+          {isBelowMinimum && (
+            <span className="mt-1 inline-flex w-fit items-center gap-1 rounded-full border border-[#ffb4ab] bg-[#ffdad6] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[#93000a]">
+              <AlertTriangle className="size-3" />
+              Bajo mín. {minimumStock}
+            </span>
+          )}
         </div>
       </td>
       <td className="px-6 py-4 whitespace-nowrap">

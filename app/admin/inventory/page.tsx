@@ -36,6 +36,8 @@ interface ProductInventoryItem {
   thumbnail: string | null;
   quantity: number;
   inventory_status: 'in_stock' | 'medium_stock' | 'low_stock' | 'out_of_stock';
+  minimum_stock: number;
+  below_minimum_stock: boolean;
   images: ProductImage[];
   sku: string;
   variantnumber: number;
@@ -96,8 +98,9 @@ interface InventoryRowProps {
 const InventoryRow = ({ item, onView }: InventoryRowProps) => {
   const statusConfig = STATUS_CONFIG[item.inventory_status] || STATUS_CONFIG['out_of_stock'];
 
-  // Determine if quantity is low (less than 20) for red styling
-  const isLowStock = item.quantity < 20;
+  // Low stock is defined per-variant by its own minimum_stock alert
+  // threshold (0 = alert disabled for that variant), not a fixed number.
+  const isLowStock = item.below_minimum_stock;
   const quantityColor = isLowStock ? 'text-[#d93025]' : 'text-[#191c1e]';
 
   return (
@@ -137,7 +140,7 @@ const InventoryRow = ({ item, onView }: InventoryRowProps) => {
           <span className={`text-[16px] font-bold ${quantityColor}`}>{item.quantity}</span>
           {isLowStock && item.quantity > 0 && (
             <span className="text-[10px] text-[#d93025] font-medium uppercase tracking-wider">
-              ¡Stock Bajo!
+              ¡Stock Bajo! (mín. {item.minimum_stock})
             </span>
           )}
         </div>
@@ -353,7 +356,7 @@ export default function InventoryPage() {
       totalItems += item.quantity;
       totalValue += item.quantity * item.selling_price;
       if (item.quantity === 0) outOfStockCount++;
-      else if (item.quantity < 20) lowStockCount++;
+      else if (item.below_minimum_stock) lowStockCount++;
     });
 
     return {

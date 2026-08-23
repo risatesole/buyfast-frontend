@@ -16,6 +16,8 @@ type VariantInfo = {
   thumbnail: string | null;
   quantity: number;
   inventory_status: string;
+  minimum_stock: number;
+  below_minimum_stock: boolean;
   sku: string;
   selling_price: number;
 };
@@ -206,6 +208,13 @@ export default function NewStockDecreasePage() {
                             : '-'}
                         </span>
                       </div>
+                      {checkedVariant.below_minimum_stock && (
+                        <div className="mt-2 rounded-md border border-[#ffb4ab] bg-[#ffdad6] px-2.5 py-1.5 text-[12px] font-semibold text-[#93000a]">
+                          ⚠ Este producto ya está en o bajo su mínimo configurado (
+                          {checkedVariant.minimum_stock} unidades). Retirar más stock lo dejará más
+                          bajo.
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>

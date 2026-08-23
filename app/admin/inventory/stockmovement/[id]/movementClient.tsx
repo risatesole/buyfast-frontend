@@ -15,6 +15,7 @@ import {
   Box,
   ShoppingBag,
   Minus,
+  AlertTriangle,
 } from 'lucide-react';
 
 // ============================================================================
@@ -58,6 +59,7 @@ interface ProductVariant {
   status: boolean;
   selling_price: number;
   tax_rate: number;
+  minimum_stock: number;
   product: Product;
   images: ProductImage[];
   created_at: string;
@@ -143,6 +145,7 @@ export default function StockMovementDetailsClient({
   const formattedDate = formatDate(movement.date_time);
   const variant = movement.product_variant;
   const product = variant.product;
+  const isBelowMinimum = variant.minimum_stock > 0 && movement.balance <= variant.minimum_stock;
 
   // Get the best image to display
   const mainImage =
@@ -352,12 +355,30 @@ export default function StockMovementDetailsClient({
                   <p className="text-[12px] text-[#747781] mt-0.5">unidades en este movimiento</p>
                 </div>
 
-                <div className="p-4 rounded-lg bg-[#e8f0fe] border border-[#c4c6d1]">
+                <div
+                  className={`p-4 rounded-lg border ${
+                    isBelowMinimum
+                      ? 'bg-[#ffdad6] border-[#ffb4ab]'
+                      : 'bg-[#e8f0fe] border-[#c4c6d1]'
+                  }`}
+                >
                   <p className="text-[11px] font-semibold text-[#747781] uppercase tracking-wider">
                     Balance Actual
                   </p>
-                  <p className="text-[24px] font-bold text-[#002d62]">{movement.balance}</p>
+                  <p
+                    className={`text-[24px] font-bold ${
+                      isBelowMinimum ? 'text-[#93000a]' : 'text-[#002d62]'
+                    }`}
+                  >
+                    {movement.balance}
+                  </p>
                   <p className="text-[12px] text-[#747781] mt-0.5">unidades en inventario</p>
+                  {isBelowMinimum && (
+                    <div className="mt-2 flex items-center gap-1.5 text-[12px] font-semibold text-[#93000a]">
+                      <AlertTriangle className="size-3.5 flex-shrink-0" />
+                      Stock bajo el mínimo configurado ({variant.minimum_stock} unidades)
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -394,6 +415,16 @@ export default function StockMovementDetailsClient({
                   <span className="text-[#747781]">Precio</span>
                   <span className="font-bold text-[#191c1e]">
                     ${variant.selling_price.toFixed(2)}
+                  </span>
+                </div>
+                <div className="flex justify-between text-[13px]">
+                  <span className="text-[#747781]">Alerta de stock mínimo</span>
+                  <span
+                    className={`font-medium ${
+                      variant.minimum_stock > 0 ? 'text-[#191c1e]' : 'text-[#747781]'
+                    }`}
+                  >
+                    {variant.minimum_stock > 0 ? `${variant.minimum_stock} unidades` : 'Sin alerta'}
                   </span>
                 </div>
               </div>

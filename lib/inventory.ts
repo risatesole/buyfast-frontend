@@ -13,6 +13,7 @@ export interface StockMovement {
     status: boolean;
     selling_price: number;
     tax_rate: number;
+    minimum_stock: number;
     product: {
       id: number;
       name: string;
