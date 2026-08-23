@@ -2,8 +2,9 @@
 import { cookies } from 'next/headers';
 import { notFound } from 'next/navigation';
 import Image from 'next/image';
-import { ImageOff } from 'lucide-react';
+import { ImageOff, PackageCheck } from 'lucide-react';
 import FulfillButton from './FulfillButton';
+import MarkReadyButton from './MarkReadyButton';
 import { Avatar } from '@/components/admin/avatar';
 import { formatCurrency, formatDate } from '@/lib/format';
 import { STATUS_UI, type OrderStatus } from '@/lib/order-status';
@@ -45,6 +46,7 @@ interface OrderData {
   status: OrderStatus;
   pickup_time: string;
   pickup_code: string;
+  ready_for_pickup: boolean;
   created_at: string;
   items: OrderItem[];
   total_items: number;
@@ -131,7 +133,20 @@ export default async function AdminOrderDetailsPage({
                 {statusConfig.label}
               </span>
             </div>
-            {order.status !== 'fulfilled' && <FulfillButton orderId={order.id} />}
+            {order.ready_for_pickup && order.status !== 'fulfilled' && (
+              <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border bg-[#e8f0fe] text-[#1967d2] border-[#d2e3fc]">
+                <PackageCheck className="size-3.5" />
+                <span className="text-[11px] font-bold uppercase tracking-wider">
+                  Lista para retirar
+                </span>
+              </div>
+            )}
+            {order.status !== 'fulfilled' && (
+              <MarkReadyButton orderId={order.id} readyForPickup={order.ready_for_pickup} />
+            )}
+            {order.status !== 'fulfilled' && order.ready_for_pickup && (
+              <FulfillButton orderId={order.id} />
+            )}
           </div>
         </div>
 

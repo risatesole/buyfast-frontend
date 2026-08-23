@@ -31,6 +31,7 @@ interface OrderData {
   status: string;
   pickup_time: string;
   pickup_code: string;
+  ready_for_pickup: boolean;
   phone: string | null;
   address: Address;
   items: OrderItem[];
@@ -224,6 +225,28 @@ export default async function ClientOrderDetailsPage({
           <DownloadVoucherButton orderId={order.id} />
         </div>
       </div>
+
+      {/* Ready for pickup notice */}
+      {order.ready_for_pickup && order.status !== 'fulfilled' && (
+        <div
+          style={{
+            marginBottom: '2rem',
+            padding: '1rem 1.25rem',
+            border: '1px solid #137333',
+            borderRadius: 4,
+            background: '#e6f4ea',
+          }}
+        >
+          <div style={{ fontSize: '0.9rem', fontWeight: 600, color: '#137333' }}>
+            Tu pedido está listo para retirar
+          </div>
+          {order.pickup_time && (
+            <div style={{ fontSize: '0.8rem', color: '#191c1e', marginTop: '0.35rem' }}>
+              Puedes pasar a recogerlo el {formatDateTime(order.pickup_time)}.
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Pickup Code */}
       {order.pickup_code && (
