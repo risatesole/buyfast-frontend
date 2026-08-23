@@ -21,6 +21,7 @@ interface VariantDraft {
   selling_price: string;
   tax_rate: string;
   initial_inventory: string;
+  minimum_stock: string;
   images: ImageDraft[];
 }
 
@@ -35,6 +36,7 @@ function emptyVariant(nextNumber: number): VariantDraft {
     selling_price: '',
     tax_rate: '0.1',
     initial_inventory: '0',
+    minimum_stock: '0',
     images: [{ type: 'GALLERY', url: '' }],
   };
 }
@@ -142,6 +144,8 @@ export default function NewProductPage() {
         return `Variante ${i + 1}: la tasa de impuesto es inválida.`;
       if (v.initial_inventory === '' || Number.isNaN(Number(v.initial_inventory)))
         return `Variante ${i + 1}: el inventario inicial es inválido.`;
+      if (v.minimum_stock === '' || Number.isNaN(Number(v.minimum_stock)))
+        return `Variante ${i + 1}: la alerta de stock mínimo es inválida.`;
     }
 
     return null;
@@ -177,6 +181,7 @@ export default function NewProductPage() {
         selling_price: roundTo(Number(v.selling_price), 2),
         tax_rate: Number(v.tax_rate).toFixed(4),
         initial_inventory: Number(v.initial_inventory),
+        minimum_stock: Number(v.minimum_stock),
         images: v.images
           .filter(img => img.url.trim())
           .map(img => ({ type: img.type || 'GALLERY', url: img.url.trim() })),
@@ -387,6 +392,18 @@ export default function NewProductPage() {
                       value={variant.initial_inventory}
                       onChange={e => updateVariant(vIndex, { initial_inventory: e.target.value })}
                       placeholder="0"
+                    />
+                  </div>
+
+                  <div>
+                    <label className={labelClass}>Alerta de stock mínimo</label>
+                    <input
+                      className={inputClass}
+                      type="number"
+                      min="0"
+                      value={variant.minimum_stock}
+                      onChange={e => updateVariant(vIndex, { minimum_stock: e.target.value })}
+                      placeholder="0 = sin alerta"
                     />
                   </div>
 

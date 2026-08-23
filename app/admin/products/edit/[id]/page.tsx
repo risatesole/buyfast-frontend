@@ -22,6 +22,7 @@ interface LoadedVariant {
   slug: string;
   selling_price: string;
   tax_rate: string;
+  minimum_stock: string;
   images: ProductImageInput[];
 }
 
@@ -62,6 +63,7 @@ function normalize(data: LoadedProduct): LoadedProduct {
       slug: v.slug,
       selling_price: String(v.selling_price),
       tax_rate: String(v.tax_rate),
+      minimum_stock: String(v.minimum_stock ?? 0),
       images: v.images ?? [],
     })),
   };
@@ -251,6 +253,10 @@ export default function PatchProductPage() {
       }
       if (dv.tax_rate !== ov.tax_rate) {
         vPatch.tax_rate = Number(dv.tax_rate).toFixed(4);
+        changed = true;
+      }
+      if (dv.minimum_stock !== ov.minimum_stock) {
+        vPatch.minimum_stock = Number(dv.minimum_stock);
         changed = true;
       }
       if (JSON.stringify(dv.images) !== JSON.stringify(ov.images)) {
@@ -463,6 +469,19 @@ export default function PatchProductPage() {
                         min="0"
                         value={variant.tax_rate}
                         onChange={e => updateVariant(vIndex, { tax_rate: e.target.value })}
+                      />
+                    </div>
+
+                    <div>
+                      <label className={labelClass}>Alerta de stock mínimo</label>
+                      <input
+                        className={inputClass}
+                        type="number"
+                        step="1"
+                        min="0"
+                        value={variant.minimum_stock}
+                        onChange={e => updateVariant(vIndex, { minimum_stock: e.target.value })}
+                        placeholder="0 = sin alerta"
                       />
                     </div>
 

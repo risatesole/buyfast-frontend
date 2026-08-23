@@ -18,6 +18,7 @@ export interface ProductVariantInput {
   selling_price: number;
   tax_rate: string;
   initial_inventory: number;
+  minimum_stock: number;
   image_hero?: string;
   image_details?: string;
   image_thumbnail?: string;

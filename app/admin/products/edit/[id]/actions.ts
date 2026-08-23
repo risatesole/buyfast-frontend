@@ -18,6 +18,7 @@ export interface VariantPatchInput {
   slug?: string;
   selling_price?: number;
   tax_rate?: string;
+  minimum_stock?: number;
   images?: ProductImageInput[];
 }
 
