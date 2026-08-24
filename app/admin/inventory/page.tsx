@@ -52,6 +52,15 @@ interface ApiResponse {
   results: ProductInventoryItem[];
 }
 
+interface InventorySummaryResponse {
+  total_variants: number;
+  total_products: number;
+  total_items_in_stock: number;
+  total_inventory_value: number;
+  low_stock_count: number;
+  out_of_stock_count: number;
+}
+
 // ============================================================================
 // INVENTORY STATUS UI CONFIGURATION
 // ============================================================================
@@ -201,6 +210,7 @@ export default function InventoryPage() {
   const [totalItems, setTotalItems] = useState(0);
   const [sortBy, setSortBy] = useState(searchParams.get('sort') || '-variant_id');
   const [statusFilter, setStatusFilter] = useState(searchParams.get('status') || '');
+  const [summaryStats, setSummaryStats] = useState<InventorySummaryResponse | null>(null);
   const hasLoadedRef = useRef(false);
 
   const ITEMS_PER_PAGE = 10;
@@ -256,6 +266,29 @@ export default function InventoryPage() {
     },
     []
   );
+
+  // Fetch database-wide inventory summary stats (independent of pagination),
+  // so the summary cards reflect every variant, not just the current page.
+  const fetchSummary = useCallback(async () => {
+    try {
+      const response = await fetch('/api/v1/admin/inventory/summary/', {
+        method: 'GET',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result: InventorySummaryResponse = await response.json();
+      setSummaryStats(result);
+    } catch (err) {
+      console.error('Error fetching inventory summary:', err);
+    }
+  }, []);
 
   // Update URL with current page and other params
   const updateUrlParams = useCallback(
@@ -321,7 +354,10 @@ export default function InventoryPage() {
     if (!hasLoadedRef.current) {
       hasLoadedRef.current = true;
       const loadData = async () => {
-        await fetchInventory(validPage, searchQuery, sortBy, statusFilter);
+        await Promise.all([
+          fetchInventory(validPage, searchQuery, sortBy, statusFilter),
+          fetchSummary(),
+        ]);
       };
       loadData();
     }
@@ -345,28 +381,15 @@ export default function InventoryPage() {
     router.push('/admin/inventory/add');
   }, [router]);
 
-  // Calculate summary statistics
-  const summary = useMemo(() => {
-    let totalItems = 0;
-    let lowStockCount = 0;
-    let outOfStockCount = 0;
-    let totalValue = 0;
-
-    inventoryItems.forEach(item => {
-      totalItems += item.quantity;
-      totalValue += item.quantity * item.selling_price;
-      if (item.quantity === 0) outOfStockCount++;
-      else if (item.below_minimum_stock) lowStockCount++;
-    });
-
-    return {
-      totalItems,
-      lowStockCount,
-      outOfStockCount,
-      totalValue,
-      itemCount: inventoryItems.length,
-    };
-  }, [inventoryItems]);
+  // Summary statistics come from the database-wide /admin/inventory/summary/
+  // endpoint (fetchSummary), not from the current page's items.
+  const summary = {
+    totalItems: summaryStats?.total_items_in_stock ?? 0,
+    lowStockCount: summaryStats?.low_stock_count ?? 0,
+    outOfStockCount: summaryStats?.out_of_stock_count ?? 0,
+    totalValue: summaryStats?.total_inventory_value ?? 0,
+    itemCount: inventoryItems.length,
+  };
 
   const paginationRange = useMemo(() => {
     const pages: number[] = [];
