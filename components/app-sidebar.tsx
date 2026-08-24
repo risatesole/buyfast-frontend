@@ -56,7 +56,6 @@ const PLATFORM_ITEMS: NavigationItem[] = [
     title: 'Panel Principal',
     url: '/admin',
     icon: LayoutDashboard,
-    sub: [{ title: 'Dashboard Administrativo', url: '/admin' }],
   },
   {
     id: 'customers',
