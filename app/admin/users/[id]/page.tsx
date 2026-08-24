@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation';
 import { cookies } from 'next/headers';
 import UserDetailsClient from './userClient';
 import { fetchUserFromBackend } from '@/lib/users';
+import UserService from '@/services/user';
 
 type UserDetailsPageProps = {
   params: Promise<{ id: string }>;
@@ -20,5 +21,10 @@ export default async function UserDetailsPage({ params }: UserDetailsPageProps) 
     notFound();
   }
 
-  return <UserDetailsClient initialUser={user} />;
+  // The currently logged-in admin, not the account being viewed — needed to
+  // gate the matricula editor to superusers only (matricula edits are
+  // superuser-only server-side too, see users_api_view.py).
+  const actingUser = await new UserService().getCurrentUser();
+
+  return <UserDetailsClient initialUser={user} isActingSuperuser={!!actingUser?.is_superuser} />;
 }

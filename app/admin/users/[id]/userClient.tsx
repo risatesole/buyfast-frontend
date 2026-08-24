@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import {
   ArrowLeft,
   ShieldCheck,
@@ -13,8 +14,9 @@ import {
   KeyRound,
   Hash,
   Users,
+  Pencil,
 } from 'lucide-react';
-import { User, getFullName, getInitials, getRoleLabel } from '@/lib/users';
+import { User, getFullName, getRoleLabel } from '@/lib/users';
 
 const dateFormatter = new Intl.DateTimeFormat('es-DO', {
   dateStyle: 'medium',
@@ -32,9 +34,13 @@ function formatDate(value: string | null): string {
 
 type UserDetailsClientProps = {
   initialUser: User;
+  isActingSuperuser: boolean;
 };
 
-export default function UserDetailsClient({ initialUser }: UserDetailsClientProps) {
+export default function UserDetailsClient({
+  initialUser,
+  isActingSuperuser,
+}: UserDetailsClientProps) {
   const [user, setUser] = useState<User>(initialUser);
   const [updatingField, setUpdatingField] = useState<'is_active' | 'institution_member' | null>(
     null
@@ -46,6 +52,10 @@ export default function UserDetailsClient({ initialUser }: UserDetailsClientProp
     user.profile?.id ?? null
   );
   const [isSavingProfile, setIsSavingProfile] = useState(false);
+
+  const [isEditingMatricula, setIsEditingMatricula] = useState(false);
+  const [matriculaDraft, setMatriculaDraft] = useState(user.matricula ?? '');
+  const [isSavingMatricula, setIsSavingMatricula] = useState(false);
 
   useEffect(() => {
     if (user.role !== 'employee') return;
@@ -113,6 +123,37 @@ export default function UserDetailsClient({ initialUser }: UserDetailsClientProp
     [user.id]
   );
 
+  const saveMatricula = useCallback(async () => {
+    setIsSavingMatricula(true);
+    setErrorMessage(null);
+
+    try {
+      const response = await fetch(`/api/v1/users/${user.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ matricula: matriculaDraft }),
+      });
+
+      const json = await response.json();
+
+      if (!response.ok || !json.success) {
+        throw new Error(json.message || 'No se pudo actualizar la matrícula.');
+      }
+
+      setUser(json.data);
+      setIsEditingMatricula(false);
+    } catch (err) {
+      setErrorMessage(err instanceof Error ? err.message : 'No se pudo actualizar la matrícula.');
+    } finally {
+      setIsSavingMatricula(false);
+    }
+  }, [matriculaDraft, user.id]);
+
+  const cancelEditMatricula = useCallback(() => {
+    setMatriculaDraft(user.matricula ?? '');
+    setIsEditingMatricula(false);
+  }, [user.matricula]);
+
   const toggleActive = useCallback(() => {
     updateUser('is_active', !user.is_active);
   }, [updateUser, user.is_active]);
@@ -151,9 +192,15 @@ export default function UserDetailsClient({ initialUser }: UserDetailsClientProp
           {/* Profile card */}
           <section className="lg:col-span-1 bg-white border border-[#e0e3e5] rounded-lg p-6">
             <div className="flex flex-col items-center text-center">
-              <div className="size-20 rounded-full bg-[#002d62] text-white flex items-center justify-center text-2xl font-serif font-bold">
-                {getInitials(user)}
-              </div>
+              {user.profilepicture ? (
+                <Image
+                  src={user.profilepicture}
+                  alt={getFullName(user)}
+                  width={80}
+                  height={80}
+                  className="size-20 rounded-full object-cover border border-[#e0e3e5]"
+                />
+              ) : null}
               <h2 className="mt-4 text-[16px] font-bold text-[#191c1e]">{getFullName(user)}</h2>
               <span className="mt-1 text-[12px] font-medium text-[#43474f] bg-[#f2f4f6] px-2.5 py-1 rounded-md border border-[#e0e3e5]">
                 {getRoleLabel(user.role)}
@@ -164,12 +211,52 @@ export default function UserDetailsClient({ initialUser }: UserDetailsClientProp
                   <Mail className="size-4 text-[#747781] shrink-0" />
                   <span className="truncate">{user.email}</span>
                 </div>
-                {/* ← AÑADIDO: Mostrar matrícula */}
                 <div className="flex items-center gap-2.5 text-[13px] text-[#43474f]">
                   <Hash className="size-4 text-[#747781] shrink-0" />
-                  <span className="font-mono font-semibold text-[#002d62]">
-                    Matrícula: {user.matricula || 'Sin asignar'}
-                  </span>
+                  {isEditingMatricula ? (
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                      <input
+                        type="text"
+                        value={matriculaDraft}
+                        onChange={e => setMatriculaDraft(e.target.value)}
+                        maxLength={30}
+                        autoFocus
+                        className="flex-1 min-w-0 rounded-md border border-[#c4c6d1] px-2 py-1 text-[13px] font-mono text-[#002d62] outline-none focus:border-[#002d62] focus:ring-1 focus:ring-[#002d62]"
+                      />
+                      <button
+                        onClick={saveMatricula}
+                        disabled={isSavingMatricula}
+                        className="text-[12px] font-semibold text-[#002d62] hover:underline disabled:opacity-50"
+                      >
+                        {isSavingMatricula ? 'Guardando...' : 'Guardar'}
+                      </button>
+                      <button
+                        onClick={cancelEditMatricula}
+                        disabled={isSavingMatricula}
+                        className="text-[12px] font-semibold text-[#747781] hover:underline disabled:opacity-50"
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      <span className="font-mono font-semibold text-[#002d62]">
+                        Matrícula: {user.matricula || 'Sin asignar'}
+                      </span>
+                      {isActingSuperuser && (
+                        <button
+                          onClick={() => {
+                            setMatriculaDraft(user.matricula ?? '');
+                            setIsEditingMatricula(true);
+                          }}
+                          aria-label="Editar matrícula"
+                          className="text-[#747781] hover:text-[#002d62] transition-colors"
+                        >
+                          <Pencil className="size-3.5" />
+                        </button>
+                      )}
+                    </>
+                  )}
                 </div>
                 <div className="flex items-center gap-2.5 text-[13px] text-[#43474f]">
                   <Clock className="size-4 text-[#747781] shrink-0" />
