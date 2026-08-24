@@ -78,7 +78,7 @@ export default function NewCategoryPage() {
         <p className="mb-1 text-xs font-semibold tracking-widest text-gray-500 uppercase">
           Catálogo
         </p>
-        <h1 className="font-serif text-3xl font-medium text-gray-900">Nueva categoría</h1>
+        <h1 className="font-sans text-3xl font-medium text-gray-900">Nueva categoría</h1>
       </header>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-10">

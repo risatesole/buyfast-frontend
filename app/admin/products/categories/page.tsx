@@ -248,7 +248,7 @@ export default function CategoriesPage() {
       {/* Header Institucional */}
       <header className="flex items-center justify-between px-8 py-6 bg-white border-b border-[#e0e3e5]">
         <div>
-          <h1 className="text-2xl font-serif font-bold text-[#00193c] tracking-tight">
+          <h1 className="text-2xl font-sans font-bold text-[#00193c] tracking-tight">
             Jerarquía de Categorías
           </h1>
           <p className="text-[13px] font-sans text-[#747781] mt-1">

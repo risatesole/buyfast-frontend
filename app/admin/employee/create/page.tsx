@@ -164,7 +164,7 @@ export default function CreateEmployeePage() {
             <ArrowLeft className="size-3.5" />
             Volver al directorio
           </button>
-          <h1 className="text-2xl font-serif font-bold text-[#00193c] tracking-tight">
+          <h1 className="text-2xl font-sans font-bold text-[#00193c] tracking-tight">
             Nuevo empleado
           </h1>
           <p className="text-[13px] font-sans text-[#747781] mt-1">

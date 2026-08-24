@@ -271,7 +271,7 @@ export default function ProductInfoPage({ params }: ProductInfoPageProps) {
           </Link>
           <div className="h-6 w-px bg-[#e0e3e5]" />
           <div>
-            <h1 className="text-2xl font-serif font-bold text-[#00193c] tracking-tight">
+            <h1 className="text-2xl font-sans font-bold text-[#00193c] tracking-tight">
               {product.name}
             </h1>
             <p className="text-[13px] font-sans text-[#747781] mt-0.5">

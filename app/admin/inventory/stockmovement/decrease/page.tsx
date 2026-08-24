@@ -138,7 +138,7 @@ export default function NewStockDecreasePage() {
         <p className="mb-1 text-xs font-semibold tracking-widest text-gray-500 uppercase">
           Inventario
         </p>
-        <h1 className="font-serif text-3xl font-medium text-gray-900">Salida de inventario</h1>
+        <h1 className="font-sans text-3xl font-medium text-gray-900">Salida de inventario</h1>
         <p className="mt-1 text-sm text-gray-500">
           Retira manualmente unidades del inventario (pérdida, daño, corrección, etc).
         </p>

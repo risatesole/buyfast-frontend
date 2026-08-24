@@ -162,7 +162,7 @@ export default function StockMovementDetailsClient({
           >
             <ArrowLeft className="size-3.5" /> Volver a Movimientos
           </Link>
-          <h1 className="text-2xl font-serif font-bold text-[#00193c] tracking-tight">
+          <h1 className="text-2xl font-sans font-bold text-[#00193c] tracking-tight">
             Movimiento #{movement.id}
           </h1>
           <p className="text-[13px] font-sans text-[#747781] mt-1">

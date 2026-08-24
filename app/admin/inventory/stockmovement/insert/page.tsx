@@ -134,7 +134,7 @@ export default function NewStockEntryPage() {
         <p className="mb-1 text-xs font-semibold tracking-widest text-gray-500 uppercase">
           Inventario
         </p>
-        <h1 className="font-serif text-3xl font-medium text-gray-900">Entrada de inventario</h1>
+        <h1 className="font-sans text-3xl font-medium text-gray-900">Entrada de inventario</h1>
       </header>
 
       <form onSubmit={e => handleSubmit(e, false)} className="flex flex-col gap-6">

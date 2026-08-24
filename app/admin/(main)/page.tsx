@@ -278,7 +278,7 @@ export default function AdminDashboardPage() {
   return (
     <div className="max-w-7xl mx-auto space-y-6">
       <header className="border-b border-[#e0e3e5] pb-4">
-        <h1 className="text-2xl font-serif font-bold text-[#00193c] tracking-tight">
+        <h1 className="text-2xl font-sans font-bold text-[#00193c] tracking-tight">
           Panel de Control
         </h1>
         <p className="text-[13px] text-[#747781] mt-1">Resumen operativo del Económato UASD.</p>

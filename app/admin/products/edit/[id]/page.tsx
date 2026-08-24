@@ -311,7 +311,7 @@ export default function PatchProductPage() {
         <p className="mb-1 text-xs font-semibold tracking-widest text-gray-500 uppercase">
           Catálogo
         </p>
-        <h1 className="font-serif text-3xl font-medium text-gray-900">
+        <h1 className="font-sans text-3xl font-medium text-gray-900">
           Editar producto {productId ? `#${productId}` : ''}
         </h1>
       </header>
