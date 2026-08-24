@@ -21,7 +21,7 @@ export async function getCategories(): Promise<Category[]> {
   try {
     const res = await fetch(`${DJANGO_BASE}/api/v1/products/categories`, {
       headers: { Accept: 'application/json' },
-      next: { revalidate: 3600, tags: ['categories'] },
+      next: { revalidate: 30, tags: ['categories'] },
     });
 
     if (!res.ok) {

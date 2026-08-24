@@ -1,6 +1,7 @@
 'use server';
 
 import { cookies } from 'next/headers';
+import { updateTag } from 'next/cache';
 
 export interface CategoryImages {
   banner: string;
@@ -143,6 +144,8 @@ export async function createCategory(category: CategoryInput): Promise<ActionRes
       (json && typeof json === 'object' && 'message' in json && String(json.message)) ||
       'Categoría creada correctamente';
 
+    updateTag('categories');
+
     return {
       ok: true,
       status: response.status,
@@ -211,6 +214,8 @@ export async function updateCategory(
       (json && typeof json === 'object' && 'message' in json && String(json.message)) ||
       'Categoría actualizada correctamente';
 
+    updateTag('categories');
+
     return {
       ok: true,
       status: response.status,
@@ -273,6 +278,8 @@ export async function deleteCategory(categoryId: string): Promise<ActionResult> 
     const message =
       (json && typeof json === 'object' && 'message' in json && String(json.message)) ||
       'Categoría eliminada correctamente';
+
+    updateTag('categories');
 
     return { ok: true, status: response.status, message, data: json };
   } catch (error) {
