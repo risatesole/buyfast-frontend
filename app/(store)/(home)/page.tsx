@@ -26,7 +26,7 @@ async function getCarouselSlides() {
   try {
     const url = new URL('/api/v1/ui/carrousel', baseUrl).toString();
     const response = await fetch(url, {
-      next: { revalidate: 3600 }, // Revalidate every hour
+      next: { revalidate: 30 }, // Revalidate every 30 seconds
       headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
     });
 
