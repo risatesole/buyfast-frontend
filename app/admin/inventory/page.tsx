@@ -384,9 +384,10 @@ export default function InventoryPage() {
   // Summary statistics come from the database-wide /admin/inventory/summary/
   // endpoint (fetchSummary), not from the current page's items.
   const summary = {
-    // "Cantidad Total de Productos" is the count of distinct products, not
-    // the sum of stock quantities (that's total_items_in_stock, unused here).
-    totalItems: summaryStats?.total_products ?? 0,
+    // "Cantidad Total de Productos" is the count of product variants/SKUs
+    // (each row in the table below is one variant), not the sum of stock
+    // quantities (that's total_items_in_stock, unused here).
+    totalItems: summaryStats?.total_variants ?? 0,
     lowStockCount: summaryStats?.low_stock_count ?? 0,
     outOfStockCount: summaryStats?.out_of_stock_count ?? 0,
     totalValue: summaryStats?.total_inventory_value ?? 0,
