@@ -114,6 +114,10 @@ const MOVEMENT_TYPE_UI: Record<string, { icon: React.ReactNode; color: string; b
   },
 };
 
+// quantity is always stored as a positive number on the backend — the
+// direction (added vs. removed) is implied by movement_type instead.
+const STOCK_OUT_MOVEMENT_TYPES = new Set(['customer_sell', 'manual_decrease']);
+
 // ============================================================================
 // COMPONENTS
 // ============================================================================
@@ -126,6 +130,7 @@ interface StockMovementRowProps {
 const StockMovementRow = ({ movement, onViewInfo }: StockMovementRowProps) => {
   const movementUI =
     MOVEMENT_TYPE_UI[movement.movement_type] || MOVEMENT_TYPE_UI['initial_inventory'];
+  const isStockOut = STOCK_OUT_MOVEMENT_TYPES.has(movement.movement_type);
   const minimumStock = movement.product_variant.minimum_stock;
   const isBelowMinimum = minimumStock > 0 && movement.balance <= minimumStock;
   const formattedDate = new Date(movement.date_time).toLocaleString('es-ES', {
@@ -193,10 +198,8 @@ const StockMovementRow = ({ movement, onViewInfo }: StockMovementRowProps) => {
       </td>
       <td className="px-6 py-4 whitespace-nowrap">
         <div className="flex flex-col">
-          <span
-            className={`text-[14px] font-bold ${movement.quantity > 0 ? 'text-[#137333]' : 'text-[#d93025]'}`}
-          >
-            {movement.quantity > 0 ? '+' : ''}
+          <span className={`text-[14px] font-bold ${movementUI.color}`}>
+            {isStockOut ? '-' : '+'}
             {movement.quantity}
           </span>
           <span className="text-[11px] text-[#747781]">Balance: {movement.balance}</span>
