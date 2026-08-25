@@ -3,7 +3,8 @@
 # Project: UASD Económato Online Store — Frontend
 
 This is the customer-facing storefront and admin panel for **UASD's Económato**
-(a Dominican Republic university co-op store). Students browse products, pay
+— a supply store at the Universidad Autónoma de Santo Domingo, a public
+university in the Dominican Republic. Students browse products, pay
 online, and pick the order up in person at the Económato. The backend is a
 separate Django/DRF service (see the `backend` project's own `CLAUDE.md`).
 
