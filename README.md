@@ -70,6 +70,7 @@ services/            Clientes de API basados en clases (auth/, checkout/,
 ## Funcionalidades
 
 ### Tienda pública
+
 - Home, catálogo y categorías de productos, página de producto, búsqueda.
 - Carrito de compras y checkout con pago en línea vía PayPal.
 - Selección de horario de retiro entre los próximos 7 días hábiles, de
@@ -81,6 +82,7 @@ services/            Clientes de API basados en clases (auth/, checkout/,
   seguridad.
 
 ### Panel de administración
+
 - Dashboard ejecutivo con resumen general, estadísticas y reportes.
 - Gestión de productos: catálogo, categorías, creación/edición, importación
   masiva por CSV.
