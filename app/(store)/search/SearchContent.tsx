@@ -3,6 +3,7 @@
 import { useMemo } from 'react';
 import { ProductCard } from '@/components/ProductCard';
 import { addProductToCart } from '@/features/cart/service';
+import { toAbsoluteUrl, extractBestImageUrl } from '@/lib/image';
 
 type ApiVariant = {
   id?: number;
@@ -42,8 +43,15 @@ type SearchProduct = {
   slug: string;
 };
 
-function normalizeProduct(product: ApiProduct): SearchProduct {
+function normalizeProduct(product: ApiProduct, baseUrl: string): SearchProduct {
   const firstVariant = product.variants?.[0];
+  // Misma resolución que la home: el thumbnail plano puede venir relativo
+  // al backend, así que se convierte a URL absoluta antes de mostrarlo.
+  const directThumbnail =
+    firstVariant?.thumbnail || firstVariant?.image_thumbnail || product.thumbnail || '';
+  const image = directThumbnail
+    ? toAbsoluteUrl(directThumbnail, baseUrl)
+    : extractBestImageUrl(firstVariant, baseUrl) || extractBestImageUrl(product, baseUrl);
 
   return {
     id: product.id,
@@ -52,7 +60,7 @@ function normalizeProduct(product: ApiProduct): SearchProduct {
     selling_price: firstVariant?.selling_price ?? 0,
     tax_rate: firstVariant?.tax_rate ?? 0,
     categoryName: product.category,
-    image: firstVariant?.thumbnail || firstVariant?.image_thumbnail || product.thumbnail || '',
+    image,
     slug: firstVariant?.slug || product.slug || '',
   };
 }
@@ -74,9 +82,10 @@ function EmptyState({ query }: { query: string }) {
 interface SearchContentProps {
   query: string;
   products: ApiProduct[];
+  baseUrl: string;
 }
 
-export function SearchContent({ query, products }: SearchContentProps) {
+export function SearchContent({ query, products, baseUrl }: SearchContentProps) {
   async function handleAddToCart(variantId: string | number, quantity: number) {
     try {
       await addProductToCart(variantId, quantity);
@@ -85,7 +94,10 @@ export function SearchContent({ query, products }: SearchContentProps) {
     }
   }
 
-  const normalizedProducts = useMemo(() => products.map(normalizeProduct), [products]);
+  const normalizedProducts = useMemo(
+    () => products.map(product => normalizeProduct(product, baseUrl)),
+    [products, baseUrl]
+  );
 
   return (
     <div className="min-h-screen bg-[#f7f9fb]">

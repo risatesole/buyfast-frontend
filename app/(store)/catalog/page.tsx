@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { PackageSearch, Search as SearchIcon } from 'lucide-react';
 import { ProductCard } from '@/components/ProductCard';
 import { CatalogFilters, type CategoryOption } from './CatalogFilters';
+import { toAbsoluteUrl, extractBestImageUrl } from '@/lib/image';
 import type { Product } from '@/entities/product';
 
 const PAGE_SIZE = 12;
@@ -153,9 +154,15 @@ async function getCategories(): Promise<CategoryOption[]> {
   }
 }
 
-function mapProductsToView(products: Product[]): MappedProduct[] {
+function mapProductsToView(products: Product[], baseUrl: string): MappedProduct[] {
   return products.map(product => {
     const primaryVariant = product.variants?.[0];
+    // Misma resolución que la home: el thumbnail plano puede venir relativo
+    // al backend, así que se convierte a URL absoluta antes de mostrarlo.
+    const directThumbnail = primaryVariant?.thumbnail || product.thumbnail || '';
+    const thumbnail = directThumbnail
+      ? toAbsoluteUrl(directThumbnail, baseUrl)
+      : extractBestImageUrl(primaryVariant, baseUrl) || extractBestImageUrl(product, baseUrl);
 
     return {
       id: primaryVariant?.id ?? product.id,
@@ -164,7 +171,7 @@ function mapProductsToView(products: Product[]): MappedProduct[] {
       category: product.category,
       sellingPrice: primaryVariant?.selling_price ?? 0,
       taxRate: primaryVariant?.tax_rate ?? 0,
-      thumbnail: primaryVariant?.thumbnail || product.thumbnail || '',
+      thumbnail,
     };
   });
 }
@@ -262,7 +269,10 @@ export default async function CatalogPage({
     getProducts(searchQuery, offset, filters),
     getCategories(),
   ]);
-  const mappedProducts = mapProductsToView(products);
+  const mappedProducts = mapProductsToView(
+    products,
+    process.env.BACKEND_URL ?? 'http://localhost:8000'
+  );
 
   return (
     <main className="min-h-screen bg-[#f7f9fb]">

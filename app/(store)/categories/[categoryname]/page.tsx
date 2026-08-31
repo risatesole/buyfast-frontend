@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { PackageSearch, ArrowLeft } from 'lucide-react';
 import ProductList from './productList';
+import { toAbsoluteUrl, extractBestImageUrl } from '@/lib/image';
 import type { Product } from '@/entities/product';
 
 // ─── Configuración ─────────────────────────────────────────────
@@ -45,9 +46,16 @@ async function getProducts(categorySlug: string, offset: number): Promise<Pagina
   };
 }
 
-function mapProductsToView(products: Product[]): MappedProduct[] {
+function mapProductsToView(products: Product[], baseUrl: string): MappedProduct[] {
   return products.map(product => {
     const primaryVariant = product.variants?.[0];
+    // Misma resolución que la home: el thumbnail plano puede venir relativo
+    // al backend, así que se convierte a URL absoluta antes de mostrarlo.
+    const directThumbnail = primaryVariant?.thumbnail || product.thumbnail || '';
+    const thumbnail = directThumbnail
+      ? toAbsoluteUrl(directThumbnail, baseUrl)
+      : extractBestImageUrl(primaryVariant, baseUrl) || extractBestImageUrl(product, baseUrl);
+
     return {
       id: primaryVariant?.id ?? product.id,
       name: product.name,
@@ -55,7 +63,7 @@ function mapProductsToView(products: Product[]): MappedProduct[] {
       category: product.category,
       selling_price: primaryVariant?.selling_price ?? 0,
       tax_rate: primaryVariant?.tax_rate ?? 0,
-      thumbnail: primaryVariant?.thumbnail,
+      thumbnail,
     };
   });
 }
@@ -148,7 +156,7 @@ export default async function CategoryPage({
   }
 
   const totalPages = Math.ceil(total / PAGE_SIZE);
-  const mappedProducts = mapProductsToView(products);
+  const mappedProducts = mapProductsToView(products, process.env.BACKEND_URL || '');
 
   return (
     <main className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
