@@ -161,6 +161,13 @@ export default async function CategoryPage({
   return (
     <main className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
       <header className="mb-8 border-b border-[#e2e8f0] pb-4">
+        <Link
+          href="/categories"
+          className="mb-3 inline-flex items-center gap-2 text-[13px] font-semibold text-[#43474f] transition-colors hover:text-[#002d62] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#002d62]"
+        >
+          <ArrowLeft className="size-4" />
+          Volver a categorías
+        </Link>
         <h1 className="font-serif text-3xl font-bold tracking-tight text-[#002d62] capitalize">
           {categoryname.replace(/-/g, ' ')}
         </h1>
