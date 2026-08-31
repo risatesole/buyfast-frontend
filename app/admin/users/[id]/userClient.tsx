@@ -57,6 +57,20 @@ export default function UserDetailsClient({
   const [matriculaDraft, setMatriculaDraft] = useState(user.matricula ?? '');
   const [isSavingMatricula, setIsSavingMatricula] = useState(false);
 
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [firstNameDraft, setFirstNameDraft] = useState(user.firstname ?? '');
+  const [lastNameDraft, setLastNameDraft] = useState(user.lastname ?? '');
+  const [isSavingName, setIsSavingName] = useState(false);
+
+  const [isEditingEmail, setIsEditingEmail] = useState(false);
+  const [emailDraft, setEmailDraft] = useState(user.email ?? '');
+  const [isSavingEmail, setIsSavingEmail] = useState(false);
+
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [passwordDraft, setPasswordDraft] = useState('');
+  const [confirmPasswordDraft, setConfirmPasswordDraft] = useState('');
+  const [isSavingPassword, setIsSavingPassword] = useState(false);
+
   useEffect(() => {
     if (user.role !== 'employee') return;
 
@@ -154,6 +168,108 @@ export default function UserDetailsClient({
     setIsEditingMatricula(false);
   }, [user.matricula]);
 
+  const saveName = useCallback(async () => {
+    setIsSavingName(true);
+    setErrorMessage(null);
+
+    try {
+      const response = await fetch(`/api/v1/users/${user.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ first_name: firstNameDraft, last_name: lastNameDraft }),
+      });
+
+      const json = await response.json();
+
+      if (!response.ok || !json.success) {
+        throw new Error(json.message || 'No se pudo actualizar el nombre.');
+      }
+
+      setUser(json.data);
+      setIsEditingName(false);
+    } catch (err) {
+      setErrorMessage(err instanceof Error ? err.message : 'No se pudo actualizar el nombre.');
+    } finally {
+      setIsSavingName(false);
+    }
+  }, [firstNameDraft, lastNameDraft, user.id]);
+
+  const cancelEditName = useCallback(() => {
+    setFirstNameDraft(user.firstname ?? '');
+    setLastNameDraft(user.lastname ?? '');
+    setIsEditingName(false);
+  }, [user.firstname, user.lastname]);
+
+  const saveEmail = useCallback(async () => {
+    setIsSavingEmail(true);
+    setErrorMessage(null);
+
+    try {
+      const response = await fetch(`/api/v1/users/${user.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: emailDraft }),
+      });
+
+      const json = await response.json();
+
+      if (!response.ok || !json.success) {
+        throw new Error(json.message || 'No se pudo actualizar el correo.');
+      }
+
+      setUser(json.data);
+      setIsEditingEmail(false);
+    } catch (err) {
+      setErrorMessage(err instanceof Error ? err.message : 'No se pudo actualizar el correo.');
+    } finally {
+      setIsSavingEmail(false);
+    }
+  }, [emailDraft, user.id]);
+
+  const cancelEditEmail = useCallback(() => {
+    setEmailDraft(user.email ?? '');
+    setIsEditingEmail(false);
+  }, [user.email]);
+
+  const savePassword = useCallback(async () => {
+    if (!passwordDraft || passwordDraft !== confirmPasswordDraft) {
+      setErrorMessage('Las contraseñas no coinciden.');
+      return;
+    }
+
+    setIsSavingPassword(true);
+    setErrorMessage(null);
+
+    try {
+      const response = await fetch(`/api/v1/users/${user.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: passwordDraft }),
+      });
+
+      const json = await response.json();
+
+      if (!response.ok || !json.success) {
+        throw new Error(json.message || 'No se pudo actualizar la contraseña.');
+      }
+
+      setUser(json.data);
+      setPasswordDraft('');
+      setConfirmPasswordDraft('');
+      setIsChangingPassword(false);
+    } catch (err) {
+      setErrorMessage(err instanceof Error ? err.message : 'No se pudo actualizar la contraseña.');
+    } finally {
+      setIsSavingPassword(false);
+    }
+  }, [passwordDraft, confirmPasswordDraft, user.id]);
+
+  const cancelChangePassword = useCallback(() => {
+    setPasswordDraft('');
+    setConfirmPasswordDraft('');
+    setIsChangingPassword(false);
+  }, []);
+
   const toggleActive = useCallback(() => {
     updateUser('is_active', !user.is_active);
   }, [updateUser, user.is_active]);
@@ -201,7 +317,58 @@ export default function UserDetailsClient({
                   className="size-20 rounded-full object-cover border border-[#e0e3e5]"
                 />
               ) : null}
-              <h2 className="mt-4 text-[16px] font-bold text-[#191c1e]">{getFullName(user)}</h2>
+              {isEditingName ? (
+                <div className="w-full mt-4 flex flex-col items-center gap-2">
+                  <input
+                    type="text"
+                    value={firstNameDraft}
+                    onChange={e => setFirstNameDraft(e.target.value)}
+                    placeholder="Nombre"
+                    autoFocus
+                    className="w-full rounded-md border border-[#c4c6d1] px-2 py-1 text-[13px] text-[#191c1e] outline-none focus:border-[#002d62] focus:ring-1 focus:ring-[#002d62]"
+                  />
+                  <input
+                    type="text"
+                    value={lastNameDraft}
+                    onChange={e => setLastNameDraft(e.target.value)}
+                    placeholder="Apellido"
+                    className="w-full rounded-md border border-[#c4c6d1] px-2 py-1 text-[13px] text-[#191c1e] outline-none focus:border-[#002d62] focus:ring-1 focus:ring-[#002d62]"
+                  />
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={saveName}
+                      disabled={isSavingName}
+                      className="text-[12px] font-semibold text-[#002d62] hover:underline disabled:opacity-50"
+                    >
+                      {isSavingName ? 'Guardando...' : 'Guardar'}
+                    </button>
+                    <button
+                      onClick={cancelEditName}
+                      disabled={isSavingName}
+                      className="text-[12px] font-semibold text-[#747781] hover:underline disabled:opacity-50"
+                    >
+                      Cancelar
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center gap-1.5 mt-4">
+                  <h2 className="text-[16px] font-bold text-[#191c1e]">{getFullName(user)}</h2>
+                  {isActingSuperuser && (
+                    <button
+                      onClick={() => {
+                        setFirstNameDraft(user.firstname ?? '');
+                        setLastNameDraft(user.lastname ?? '');
+                        setIsEditingName(true);
+                      }}
+                      aria-label="Editar nombre"
+                      className="text-[#747781] hover:text-[#002d62] transition-colors"
+                    >
+                      <Pencil className="size-3.5" />
+                    </button>
+                  )}
+                </div>
+              )}
               <span className="mt-1 text-[12px] font-medium text-[#43474f] bg-[#f2f4f6] px-2.5 py-1 rounded-md border border-[#e0e3e5]">
                 {getRoleLabel(user.role)}
               </span>
@@ -209,7 +376,47 @@ export default function UserDetailsClient({
               <div className="w-full mt-6 pt-6 border-t border-[#e0e3e5] space-y-3 text-left">
                 <div className="flex items-center gap-2.5 text-[13px] text-[#43474f]">
                   <Mail className="size-4 text-[#747781] shrink-0" />
-                  <span className="truncate">{user.email}</span>
+                  {isEditingEmail ? (
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                      <input
+                        type="email"
+                        value={emailDraft}
+                        onChange={e => setEmailDraft(e.target.value)}
+                        autoFocus
+                        className="flex-1 min-w-0 rounded-md border border-[#c4c6d1] px-2 py-1 text-[13px] text-[#002d62] outline-none focus:border-[#002d62] focus:ring-1 focus:ring-[#002d62]"
+                      />
+                      <button
+                        onClick={saveEmail}
+                        disabled={isSavingEmail}
+                        className="text-[12px] font-semibold text-[#002d62] hover:underline disabled:opacity-50"
+                      >
+                        {isSavingEmail ? 'Guardando...' : 'Guardar'}
+                      </button>
+                      <button
+                        onClick={cancelEditEmail}
+                        disabled={isSavingEmail}
+                        className="text-[12px] font-semibold text-[#747781] hover:underline disabled:opacity-50"
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      <span className="truncate">{user.email}</span>
+                      {isActingSuperuser && (
+                        <button
+                          onClick={() => {
+                            setEmailDraft(user.email ?? '');
+                            setIsEditingEmail(true);
+                          }}
+                          aria-label="Editar correo"
+                          className="text-[#747781] hover:text-[#002d62] transition-colors"
+                        >
+                          <Pencil className="size-3.5" />
+                        </button>
+                      )}
+                    </>
+                  )}
                 </div>
                 <div className="flex items-center gap-2.5 text-[13px] text-[#43474f]">
                   <Hash className="size-4 text-[#747781] shrink-0" />
@@ -371,6 +578,64 @@ export default function UserDetailsClient({
                 </div>
               </div>
             </div>
+
+            {isActingSuperuser && (
+              <div className="bg-white border border-[#e0e3e5] rounded-lg p-6">
+                <h3 className="text-[14px] font-bold text-[#191c1e] mb-4 flex items-center gap-2">
+                  <KeyRound className="size-4 text-[#747781]" />
+                  Seguridad
+                </h3>
+
+                {isChangingPassword ? (
+                  <div className="flex flex-col gap-3 max-w-sm">
+                    <input
+                      type="password"
+                      value={passwordDraft}
+                      onChange={e => setPasswordDraft(e.target.value)}
+                      placeholder="Nueva contraseña"
+                      autoFocus
+                      className="rounded-md border border-[#c4c6d1] px-3 py-2 text-[13px] text-[#191c1e] outline-none focus:border-[#002d62] focus:ring-1 focus:ring-[#002d62]"
+                    />
+                    <input
+                      type="password"
+                      value={confirmPasswordDraft}
+                      onChange={e => setConfirmPasswordDraft(e.target.value)}
+                      placeholder="Confirmar nueva contraseña"
+                      className="rounded-md border border-[#c4c6d1] px-3 py-2 text-[13px] text-[#191c1e] outline-none focus:border-[#002d62] focus:ring-1 focus:ring-[#002d62]"
+                    />
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={savePassword}
+                        disabled={isSavingPassword}
+                        className="inline-flex items-center justify-center px-4 py-2 rounded-md text-[12px] font-semibold bg-[#002d62] text-white hover:bg-[#00193c] transition-colors focus:outline-none focus:ring-2 focus:ring-[#002d62] disabled:opacity-50 disabled:pointer-events-none"
+                      >
+                        {isSavingPassword ? 'Guardando...' : 'Guardar'}
+                      </button>
+                      <button
+                        onClick={cancelChangePassword}
+                        disabled={isSavingPassword}
+                        className="text-[12px] font-semibold text-[#747781] hover:underline disabled:opacity-50"
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setIsChangingPassword(true)}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[12px] font-semibold border border-[#c4c6d1] text-[#43474f] hover:bg-[#f2f4f6] transition-colors focus:outline-none focus:ring-2 focus:ring-[#002d62]"
+                  >
+                    <KeyRound className="size-3.5" />
+                    Restablecer Contraseña
+                  </button>
+                )}
+
+                <p className="mt-3 text-[12px] text-[#747781]">
+                  Establece una nueva contraseña para esta cuenta. El usuario deberá usarla en su
+                  próximo inicio de sesión.
+                </p>
+              </div>
+            )}
 
             {user.role === 'employee' && (
               <div className="bg-white border border-[#e0e3e5] rounded-lg p-6">
