@@ -268,10 +268,6 @@ export default function UserListPage() {
     [router]
   );
 
-  const handleCreateNewUser = useCallback(() => {
-    console.log('Iniciando flujo de creación de usuario');
-  }, []);
-
   const handleAdvancedFilters = useCallback(() => {
     console.log('Desplegando panel de filtros avanzados');
   }, []);
@@ -327,14 +323,6 @@ export default function UserListPage() {
           <p className="text-[13px] font-sans text-[#747781] mt-1">
             Gestione los accesos y roles administrativos del sistema.
           </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <button
-            onClick={handleCreateNewUser}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-[#002d62] rounded-md text-[13px] font-semibold text-white hover:bg-[#00193c] transition-colors focus:outline-none focus:ring-2 focus:ring-[#002d62] focus:ring-offset-2"
-          >
-            Nuevo Usuario
-          </button>
         </div>
       </header>
 

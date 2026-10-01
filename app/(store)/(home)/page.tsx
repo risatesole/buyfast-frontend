@@ -2,7 +2,18 @@ import Link from 'next/link';
 import Carousel from './ProductCarousel';
 import CategoryStrip from './CategoryStrip';
 import ProductList from './productList';
-import { toAbsoluteUrl, extractBestImageUrl } from '@/lib/image';
+
+const IMAGE_PRIORITIES: { [key: string]: number } = {
+  THUMBNAIL: 100,
+  HERO: 90,
+  DETAIL: 80,
+  GALLERY: 70,
+  LIFESTYLE: 60,
+  PACKAGING: 50,
+  COLOR: 40,
+  SIZE: 30,
+  OTHER: 20,
+};
 
 async function getCarouselSlides() {
   const baseUrl = process.env.BACKEND_URL;
@@ -55,6 +66,78 @@ async function getProducts() {
     console.error('[Network Error] Fallo en la conexión DRF:', error);
     return [];
   }
+}
+
+function toAbsoluteUrl(rawUrl: string, baseUrl: string) {
+  if (!rawUrl) return '';
+  if (rawUrl.startsWith('/')) {
+    return `${baseUrl.replace(/\/$/, '')}${rawUrl}`;
+  }
+  return rawUrl;
+}
+
+function extractBestImageUrl(
+  entity:
+    | {
+        images?: {
+          image_type?: string;
+          type?: string;
+          image?: string;
+          original?: string;
+          url?: string;
+          src?: string;
+        }[];
+        image?: string;
+        thumbnail?: string;
+        image_thumbnail?: string;
+        url?: string;
+        name?: string;
+        slug?: string;
+        selling_price?: number;
+      }
+    | string
+    | null,
+  baseUrl: string
+) {
+  if (!entity) return '';
+
+  let rawUrl = '';
+
+  // Handle arrays of images (Product.images)
+  if (
+    typeof entity === 'object' &&
+    entity !== null &&
+    Array.isArray(entity.images) &&
+    entity.images.length > 0
+  ) {
+    const sortedImages = [...entity.images].sort((a, b) => {
+      const typeA = String(a?.image_type || a?.type || '').toUpperCase();
+      const typeB = String(b?.image_type || b?.type || '').toUpperCase();
+
+      const weightA = IMAGE_PRIORITIES[typeA] || 0;
+      const weightB = IMAGE_PRIORITIES[typeB] || 0;
+
+      return weightB - weightA;
+    });
+
+    const target = sortedImages[0];
+    rawUrl =
+      typeof target === 'string'
+        ? target
+        : target?.image || target?.original || target?.url || target?.src || '';
+  }
+  // Handle flat objects (thumbnails, direct URLs)
+  else if (typeof entity === 'object' && entity !== null) {
+    rawUrl = entity.image || entity.thumbnail || entity.image_thumbnail || entity.url || '';
+  }
+  // Handle direct strings
+  else if (typeof entity === 'string') {
+    rawUrl = entity;
+  }
+
+  if (!rawUrl || typeof rawUrl !== 'string') return '';
+
+  return toAbsoluteUrl(rawUrl, baseUrl);
 }
 
 export default async function Page() {

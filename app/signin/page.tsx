@@ -4,8 +4,6 @@ import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 
-import { SigninUser } from '@/services/auth/signinUser';
-
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -54,14 +52,29 @@ export default function SignInPage() {
     setError('');
 
     try {
-      await SigninUser({ email: formData.email, password: formData.password });
+      const response = await fetch('/api/v1/signin', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          email: formData.email,
+          password: formData.password,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.message ?? 'No se pudo iniciar sesión. Intenta nuevamente.');
+        return;
+      }
 
       window.location.href = '/';
     } catch (error) {
       console.error(error);
-      setError(
-        error instanceof Error ? error.message : 'No se pudo iniciar sesión. Intenta nuevamente.'
-      );
+      setError('No se pudo conectar con el servidor.');
     } finally {
       setLoading(false);
     }

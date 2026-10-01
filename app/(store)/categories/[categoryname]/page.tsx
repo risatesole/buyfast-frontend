@@ -1,7 +1,6 @@
 import Link from 'next/link';
 import { PackageSearch, ArrowLeft } from 'lucide-react';
 import ProductList from './productList';
-import { toAbsoluteUrl, extractBestImageUrl } from '@/lib/image';
 import type { Product } from '@/entities/product';
 
 // ─── Configuración ─────────────────────────────────────────────
@@ -46,16 +45,9 @@ async function getProducts(categorySlug: string, offset: number): Promise<Pagina
   };
 }
 
-function mapProductsToView(products: Product[], baseUrl: string): MappedProduct[] {
+function mapProductsToView(products: Product[]): MappedProduct[] {
   return products.map(product => {
     const primaryVariant = product.variants?.[0];
-    // Misma resolución que la home: el thumbnail plano puede venir relativo
-    // al backend, así que se convierte a URL absoluta antes de mostrarlo.
-    const directThumbnail = primaryVariant?.thumbnail || product.thumbnail || '';
-    const thumbnail = directThumbnail
-      ? toAbsoluteUrl(directThumbnail, baseUrl)
-      : extractBestImageUrl(primaryVariant, baseUrl) || extractBestImageUrl(product, baseUrl);
-
     return {
       id: primaryVariant?.id ?? product.id,
       name: product.name,
@@ -63,7 +55,7 @@ function mapProductsToView(products: Product[], baseUrl: string): MappedProduct[
       category: product.category,
       selling_price: primaryVariant?.selling_price ?? 0,
       tax_rate: primaryVariant?.tax_rate ?? 0,
-      thumbnail,
+      thumbnail: primaryVariant?.thumbnail,
     };
   });
 }
@@ -156,18 +148,11 @@ export default async function CategoryPage({
   }
 
   const totalPages = Math.ceil(total / PAGE_SIZE);
-  const mappedProducts = mapProductsToView(products, process.env.BACKEND_URL || '');
+  const mappedProducts = mapProductsToView(products);
 
   return (
     <main className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
       <header className="mb-8 border-b border-[#e2e8f0] pb-4">
-        <Link
-          href="/categories"
-          className="mb-3 inline-flex items-center gap-2 text-[13px] font-semibold text-[#43474f] transition-colors hover:text-[#002d62] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#002d62]"
-        >
-          <ArrowLeft className="size-4" />
-          Volver a categorías
-        </Link>
         <h1 className="font-serif text-3xl font-bold tracking-tight text-[#002d62] capitalize">
           {categoryname.replace(/-/g, ' ')}
         </h1>

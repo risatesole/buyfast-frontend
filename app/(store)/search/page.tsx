@@ -71,7 +71,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
         </main>
       }
     >
-      <SearchContent query={q} products={products} baseUrl={process.env.BACKEND_URL || ''} />
+      <SearchContent query={q} products={products} />
     </Suspense>
   );
 }
